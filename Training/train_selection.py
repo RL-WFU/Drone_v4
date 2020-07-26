@@ -2,7 +2,7 @@ from Environment.target_mock_env import *
 from Training.training_helper import *
 import tensorflow as tf
 from A2C import *
-from ddrqn2 import *
+from ddrqn3 import *
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import os
 
@@ -10,11 +10,11 @@ import os
 def train_selection():
     target = SelectTargetTrain()
 
-    #sess = tf.Session()
+    sess = tf.Session()
 
-    selection_agent = DDRQNAgent(config.num_targets * 3+1, config.num_targets)
+    selection_agent = DDRQNAgent(config.num_targets * 3+1, config.num_targets, "Select", sess, True)
 
-    #sess.run(tf.global_variables_initializer())
+    sess.run(tf.global_variables_initializer())
 
     done = False
 

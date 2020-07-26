@@ -3,6 +3,7 @@ from Environment.search_env import *
 from Training.training_helper import *
 import tensorflow as tf
 from A2C import *
+from ddrqn3 import *
 
 """
 Trains the searching network to navigate to target
@@ -20,10 +21,11 @@ def train_search_agent(weights=None):
     action_size = search.num_actions
 
     sess = tf.Session()
-    searching_agent = A2CAgent(search.vision_size + 6, action_size, 'Search', sess)
+    #searching_agent = A2CAgent(search.vision_size + 6, action_size, 'Search', sess)
+    searching_agent = DDRQNAgent(search.vision_size + 6, action_size, 'Search', sess)
     sess.run(tf.global_variables_initializer())
     if weights is not None:
-        searching_agent.load(weights+'_policy', weights+'_value')
+        searching_agent.load(weights+'_model', weights+'_target')
 
 
 
@@ -58,10 +60,11 @@ def train_search_agent(weights=None):
             average_rewards.append(sum(average_r) / average_over)
 
         if episode % average_over == 0:
-            save_plots(episode+1, search, 'Search', average_rewards, episode_rewards, mining_coverage=episode_covered)
+            save_plots(episode+1, search, 'Search_test', average_rewards, episode_rewards, mining_coverage=episode_covered)
 
         print("episode: {}/{}, reward: {}, percent covered: {}, start position: {},{}, number of steps: {}"
               .format(episode+1, config.num_episodes, reward, episode_covered[episode], search.start_row,
                       search.start_col, steps))
 
-    searching_agent.save('search_weights_policy', 'search_weights_value')
+        if episode % 30 == 0 and episode != 0:
+            searching_agent.save('full_search_weights_model', 'full_search_weights_target', episode)

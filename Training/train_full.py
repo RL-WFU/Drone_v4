@@ -4,7 +4,7 @@ from Environment.tracing_env import *
 from Environment.target_selector_env import *
 from Training.training_helper import *
 from A2C import *
-from ddrqn import *
+from ddrqn3 import *
 """
 Trains the searching network to navigate to target
 
@@ -22,18 +22,18 @@ def train_full_model(target_cost=False, search_weights=None, trace_weights=None,
     target = SelectTarget()
     action_size = search.num_actions
     sess = tf.Session()
-    searching_agent = A2CAgent(search.vision_size+6, action_size, 'Search', sess)
+    searching_agent = DDRQNAgent(search.vision_size+6, action_size, 'Search', sess)
 
 
     tracing_agent = A2CAgent(trace.vision_size + 4, action_size, 'Trace', sess)
 
     if not target_cost:
-        selection_agent = DDRQNAgent(config.num_targets * 3, config.num_targets)
+        selection_agent = DDRQNAgent(config.num_targets * 3 + 1, config.num_targets, 'Target', sess, True)
 
     sess.run(tf.global_variables_initializer())
 
     if search_weights is not None:
-        searching_agent.load(search_weights + '_policy', search_weights + '_value')
+        searching_agent.load(search_weights + '_model', search_weights + '_target')
     if trace_weights is not None:
         tracing_agent.load(trace_weights + '_policy', trace_weights + '_value')
     if target_weights is not None:
@@ -76,10 +76,10 @@ def train_full_model(target_cost=False, search_weights=None, trace_weights=None,
         num_steps.append(0)
         if not target_cost:
             episode = []
-            Transition = collections.namedtuple("Transition", ["state", "local_map", "action", "reward", "next_state",
-                                                               "next_local_map", "done"])
+            Transition = collections.namedtuple("Transition", ["state", "action", "reward", "next_state",
+                                                               "done"])
             target_selection_reward = 0
-            target_selection_state = np.zeros([1, 27])
+            target_selection_state = np.zeros([1, 28])
             iteration = 0
 
         while target.calculate_covered('mining') < .7 and t < 100000:
@@ -164,26 +164,30 @@ def train_full_model(target_cost=False, search_weights=None, trace_weights=None,
                 next_target = target.select_next_target(trace.row_position, trace.col_position)
 
             else:
-                states = np.zeros([1, 5, 27])
+                states = np.zeros([1, 5, 28])
                 local_maps = np.zeros([1, 5, 625])
                 if iteration < 5:
                     action = target.select_next_target(trace.row_position, trace.col_position)
                 else:
-                    states, local_maps = get_last_t_states(5, episode, config.num_targets*3)
-                    action = selection_agent.act(states, local_maps)
+                    #states, local_maps = get_last_t_states(5, episode, config.num_targets*3+1)
+                    states, local_maps = get_last_t_states_target(5, episode, config.num_targets * 3 + 1)
+                    #action = selection_agent.act(states, local_maps)
+                    action = selection_agent.act(target_selection_state)
 
                 next_target, next_state, reward = target.set_target(action)
                 target_selection_reward += reward
 
+
                 episode.append(Transition(
-                    state=target_selection_state, local_map=trace.local_map, action=action, reward=reward,
-                    next_state=next_state, next_local_map=trace.local_map, done=done))
+                    state=target_selection_state, action=action, reward=reward,
+                    next_state=next_state, done=done))
 
                 target_selection_state = next_state
 
                 if iteration > 5:
-                    next_states, next_local_maps = get_last_t_states(5, episode, config.num_targets*3)
-                    selection_agent.memorize(states, local_maps, action, reward, next_states, next_local_maps, done)
+                    next_states, next_local_maps = get_last_t_states_target(5, episode, config.num_targets*3+1)
+                    #selection_agent.memorize(states, local_maps, action, reward, next_states, next_local_maps, done)
+                    selection_agent.memorize(target_selection_state, local_maps, action, reward, next_state, next_local_maps, done)
 
                     #value_next = selection_agent.value.predict(next_states, next_local_maps)
                     #td_target = reward + .95 * value_next
@@ -237,8 +241,9 @@ def train_full_model(target_cost=False, search_weights=None, trace_weights=None,
         plt.savefig("Training_results/Steps_final/Steps Episode {}".format(e+1))
         plt.clf()
 
-        if e % average_over == 0:
-            searching_agent.save('search_weights_policy', 'search_weights_value', e)
-            tracing_agent.save('trace_weights_policy', 'trace_weights_value', e)
+        if e % (average_over * 2) == 0:
+            if not freeze or freeze is None:
+                searching_agent.save('full_search_weights_model', 'full_search_weights_target', e)
+                tracing_agent.save('full_trace_weights_policy', 'full_trace_weights_value', e)
             if not target_cost:
                 selection_agent.save('select_weights_model', 'select_weights_target')
