@@ -17,7 +17,7 @@ class SelectTarget(Env):
         # Set reward values
         self.MINING_REWARD = 100
         self.DISTANCE_PENALTY = -2
-        self.COVERED_PENALTY = -1200
+        self.COVERED_PENALTY = -1500
         self.HOVER_PENALTY = -100
 
     def set_target(self, next_target):
@@ -30,6 +30,10 @@ class SelectTarget(Env):
         self.__class__.current_target_index = next_target
 
         state = self.region_values.reshape(1, 27)
+        state = np.asarray(state)
+        append = np.zeros(shape=[1, 1])
+        append[0, 0] = self.current_target_index
+        state = np.append(state, append, axis=1)
 
         return next_target, state, reward
 
@@ -39,7 +43,7 @@ class SelectTarget(Env):
             hover = True
 
         reward = self.region_values[next_target, 0]*self.MINING_REWARD + self.region_values[next_target, 1]*self.COVERED_PENALTY + \
-            self.region_values[next_target, 2]*self.DISTANCE_PENALTY
+            self.region_values[next_target, 2]*self.DISTANCE_PENALTY + hover*self.HOVER_PENALTY
 
         return reward
 
