@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--train_model', default='full', type=str, help='model to train: search, trace, or full')
     parser.add_argument('--target_selection', default=False, type=bool, help='select target with agent')
-    parser.add_argument('--search_weights', default='full_search_weights', type=str, help='weights to load for search model')
+    parser.add_argument('--search_weights', default="search_weights", type=str, help='weights to load for search model')
     parser.add_argument('--trace_weights', default='trace_weights', type=str, help='weights to load for trace model')
     parser.add_argument('--target_selection_weights', default=None, type=str, help='weights to load for selection model')
     parser.add_argument('--freeze', default=True, help='True if frozen weights, false if not')

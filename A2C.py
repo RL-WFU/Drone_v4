@@ -144,7 +144,7 @@ class A2CAgent:
         self.sess = session
         self.memory = deque(maxlen=2000)
         self.load_weight_dir = 'Weights_final/'
-        self.save_weight_dir = 'Weights/'
+        self.save_weight_dir = 'Weights_full/'
 
     def act(self, state, local_map):
         action_probs = self.policy.predict(state, local_map, self.sess)
