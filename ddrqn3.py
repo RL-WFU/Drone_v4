@@ -10,6 +10,7 @@ class DDRQNModel:
         self.state_size = state_size
         self.action_size = action_size
         self.learning_rate = 0.001
+        self.learning_rate_decay = 0.8
         self.sess = sess or tf.get_default_session()
 
         with tf.variable_scope(scope):
@@ -102,7 +103,7 @@ class DDRQNAgent:
         self.sess.run(tf.global_variables_initializer())
 
         self.load_weight_dir = "Weights_final/"
-        self.save_weight_dir = "Weights_full/"
+        self.save_weight_dir = "Weights2/"
         self.temp_weight_dir = "Weights_temp/"
 
         self.make_dirs()
@@ -146,8 +147,7 @@ class DDRQNAgent:
                     target[0][action] = reward + self.gamma * target_val[0][a]
 
                 self.model.fit(state, target)
-            if self.epsilon > self.epsilon_min:
-                self.epsilon *= self.epsilon_decay
+            self.decay_epsilon()
 
 
         else:
@@ -162,8 +162,11 @@ class DDRQNAgent:
                     target[0][action] = reward + self.gamma * target_val[0][a]
 
                 self.model.fit(state, target, local_map)
-            if self.epsilon > self.epsilon_min:
-                self.epsilon *= self.epsilon_decay
+            self.decay_epsilon()
+
+    def decay_epsilon(self):
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
 
     def act(self, state, local_maps=None):
@@ -175,6 +178,12 @@ class DDRQNAgent:
 
     def memorize(self, state, local_map, action, reward, next_state, next_local_map, done):
         self.memory.append((state, local_map, action, reward, next_state, next_local_map, done))
+
+    def decay_learning_rate(self):
+        self.model.learning_rate *= self.model.learning_rate_decay
+        self.target_model.learning_rate *= self.target_model.learning_rate_decay
+        self.model.optimizer = tf.train.AdamOptimizer(learning_rate=self.model.learning_rate)
+        self.target_model.optimizer = tf.train.AdamOptimizer(learning_rate=self.target_model.learning_rate)
 
     def make_dirs(self):
         if not os.path.exists(self.load_weight_dir):
