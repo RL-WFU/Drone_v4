@@ -67,13 +67,9 @@ class Env:
         self.__class__.visited = np.ones([self.totalRows, self.totalCols])
 
         # Reset env parameters
-        self.start_row = random.randint(12, 167) #CHANGE TO 167 from 47
-        self.start_col = random.randint(12, 167) #CHANGE TO 167 from 47
+        self.start_row = random.randint(12, 47)
+        self.start_col = random.randint(12, 47)
         self.__class__.current_target_index = 0
-        for region_index in range(9):
-            if self.regions[region_index][0] < self.start_row < self.regions[region_index][0]+60 and self.regions[region_index][1] \
-                    < self.start_col < self.regions[region_index][1]+60:
-                self.__class__.current_target_index = region_index
         self.__class__.row_position = self.start_row
         self.__class__.col_position = self.start_col
 
