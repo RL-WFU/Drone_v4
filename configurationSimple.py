@@ -4,8 +4,8 @@ class ConfigSimple(object):
     total_rows = 180
     total_cols = 180
 
-    num_episodes = 200
-    max_steps_search = 800
-    max_steps_trace = 800
+    num_episodes = 1500
+    max_steps_search = 300
+    max_steps_trace = 500
 
     num_targets = 9
