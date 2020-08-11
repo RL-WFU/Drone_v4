@@ -3,10 +3,12 @@ from copy import deepcopy
 
 
 class Trace(Env):
-    def __init__(self):
+    def __init__(self, visits, map_obj):
         # Set simulation
         self.set_simulation_map()
 
+        self.visits = visits
+        self.map_obj = map_obj
         # Set task-specific parameters
         self.num_actions = 5
 
@@ -90,7 +92,9 @@ class Trace(Env):
         reward = self.get_reward(image, action)
 
         self.visited_position()
-        self.update_map(image)
+        self.map_obj.update_map(image, self.__class__.row_position, self.__class__.col_position)
+        self.__class__.map = self.map_obj.map
+        #self.update_map(image)
 
         if (self.__class__.row_position < self.local_map_lower_row or self.__class__.col_position <
                 self.local_map_lower_col or self.__class__.row_position > self.local_map_upper_row or
@@ -102,10 +106,10 @@ class Trace(Env):
         flattened_local_map = self.local_map.reshape(1, 1, 625)
 
         state = self.flatten_state(image)
-        state = np.append(state, self.visited[self.__class__.row_position + 1, self.__class__.col_position])
-        state = np.append(state, self.visited[self.__class__.row_position, self.__class__.col_position + 1])
-        state = np.append(state, self.visited[self.__class__.row_position - 1, self.__class__.col_position])
-        state = np.append(state, self.visited[self.__class__.row_position, self.__class__.col_position + 1])
+        state = np.append(state, self.__class__.visited[self.__class__.row_position + 1, self.__class__.col_position])
+        state = np.append(state, self.__class__.visited[self.__class__.row_position, self.__class__.col_position + 1])
+        state = np.append(state, self.__class__.visited[self.__class__.row_position - 1, self.__class__.col_position])
+        state = np.append(state, self.__class__.visited[self.__class__.row_position, self.__class__.col_position + 1])
         # state = np.append(state, self.calculate_covered('region'))
         state = np.reshape(state, [1, 1, self.vision_size + 4])
 
@@ -119,12 +123,12 @@ class Trace(Env):
         """
         mining_prob = 2*image[self.sight_distance, self.sight_distance]
 
-        reward = mining_prob*self.MINING_REWARD*self.visited[self.__class__.row_position, self.__class__.col_position]
+        reward = mining_prob*self.MINING_REWARD*self.__class__.visited[self.__class__.row_position, self.__class__.col_position]
 
         if action == 4:
             reward += self.HOVER_PENALTY
 
-        if self.visited[self.__class__.row_position, self.__class__.col_position] == 0:
+        if self.__class__.visited[self.__class__.row_position, self.__class__.col_position] == 0:
             reward += self.VISITED_PENALTY
 
         if self.done:
@@ -137,7 +141,9 @@ class Trace(Env):
         Creates local map (shape: 25x25) of mining areas from the region map
         :return: local_map
         """
-        local_map = deepcopy(self.__class__.map[self.local_map_lower_row:self.local_map_upper_row+1, self.local_map_lower_col:self.local_map_upper_col+1])
+        local_map = deepcopy(self.map_obj.map[self.local_map_lower_row:self.local_map_upper_row + 1,
+                             self.local_map_lower_col:self.local_map_upper_col + 1])
+        #local_map = deepcopy(self.__class__.map[self.local_map_lower_row:self.local_map_upper_row+1, self.local_map_lower_col:self.local_map_upper_col+1])
         return local_map
 
     def next_local_map(self):
@@ -171,3 +177,7 @@ class Trace(Env):
         """
         flat_state = state.reshape(1, self.vision_size)
         return flat_state
+
+    def visited_position(self):
+        self.visits.visited_position(self.__class__.row_position, self.__class__.col_position)
+        self.__class__.visited = self.visits.visited

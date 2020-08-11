@@ -2,12 +2,14 @@ from Environment.base_env import *
 
 
 class Search(Env):
-    def __init__(self):
+    def __init__(self, visits, map_obj):
         # Define initial targets
         self.local_target = [24, 24]
         self.__class__.current_target_index = 0
         self.current_target = self.targets[self.__class__.current_target_index]
 
+        self.map_obj = map_obj
+        self.visits = visits
         # Set simulation
         self.set_simulation_map()
         #self.sim.showMap()
@@ -23,6 +25,9 @@ class Search(Env):
         self.HOVER_PENALTY = -25
 
     def reset_search(self, row, col):
+        self.visits.reset_search_visited()
+        self.visited = self.visits.search_visited
+        self.map_obj.reset_search_map()
         self.__class__.row_position = row
         self.__class__.col_position = col
         self.current_target = self.targets[self.__class__.current_target_index]
@@ -107,7 +112,9 @@ class Search(Env):
         reward = self.get_reward(image, action)
 
         self.visited_position()
-        self.update_map(image)
+        self.map_obj.update_map(image, self.__class__.row_position, self.__class__.col_position, True)
+        self.__class__.map = self.map_obj.map
+        #self.update_map(image)
 
         if time > self.config.max_steps_search or self.target_reached():
             self.done = True
@@ -153,7 +160,9 @@ class Search(Env):
         Creates local map (shape: 25x25) of mining areas from the region map
         :return: local_map
         """
-        local_map = deepcopy(self.__class__.map[self.local_map_lower_row:self.local_map_upper_row+1, self.local_map_lower_col:self.local_map_upper_col+1])
+        local_map = deepcopy(self.map_obj.search_map[self.local_map_lower_row:self.local_map_upper_row + 1,
+                             self.local_map_lower_col:self.local_map_upper_col + 1])
+        #local_map = deepcopy(self.__class__.map[self.local_map_lower_row:self.local_map_upper_row+1, self.local_map_lower_col:self.local_map_upper_col+1])
         local_map[(self.local_target[0]-self.local_map_lower_row), (self.local_target[1]-self.local_map_lower_col)] = 1
         return local_map
 
@@ -188,7 +197,18 @@ class Search(Env):
         :return: boolean, true if drone is at the target position
         """
         target = False
-        if self.__class__.row_position == self.current_target[0] and self.__class__.col_position == self.current_target[1]:
+        row = False
+        col = False
+
+        if self.current_target[0] - self.sight_distance <= self.__class__.row_position <= self.current_target[0] + self.sight_distance:
+            row = True
+
+        if self.current_target[1] - self.sight_distance <= self.__class__.col_position <= self.current_target[1] + self.sight_distance:
+            col = True
+
+
+
+        if row and col:
             target = True
             print(self.current_target, 'reached')
 
@@ -199,8 +219,25 @@ class Search(Env):
         :return: boolean, true if drone is at the local target position
         """
         target = False
+        """
+        row = False
+        col = False
+
+        if self.local_target[0] - self.sight_distance <= self.__class__.row_position <= self.local_target[
+            0] + self.sight_distance:
+            row = True
+
+        if self.local_target[1] - self.sight_distance <= self.__class__.col_position <= self.local_target[
+            1] + self.sight_distance:
+            col = True
+
+        if row and col:
+            target = True
+
+        """
         if self.__class__.row_position == self.local_target[0] and self.__class__.col_position == self.local_target[1]:
             target = True
+
         return target
 
     def get_local_target(self):
@@ -248,6 +285,13 @@ class Search(Env):
         """
         flat_state = state.reshape(1, self.vision_size)
         return flat_state
+
+    def visited_position(self):
+        self.visits.visited_position(self.__class__.row_position, self.__class__.col_position, True)
+        self.visited = self.visits.search_visited
+        #self.__class__.visited[self.__class__.row_position, self.__class__.col_position] = 0
+        #self.visited[self.__class__.row_position, self.__class__.col_position] = 0
+
 
     def step_local(self, action, time):
         self.done = False

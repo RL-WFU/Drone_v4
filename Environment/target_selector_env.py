@@ -2,10 +2,11 @@ from Environment.base_env import *
 
 
 class SelectTarget(Env):
-    def __init__(self):
+    def __init__(self, visits):
         # Set simulation
         self.set_simulation_map()
 
+        self.visits = visits
         # Define initial targets
         self.__class__.current_target_index = 0
         self.current_target = self.targets[self.__class__.current_target_index]
@@ -20,6 +21,8 @@ class SelectTarget(Env):
         self.COVERED_PENALTY = -1500
         self.HOVER_PENALTY = -100
 
+        self.correct_target = False
+
     def set_target(self, next_target, row, col):
         self.__class__.row_position = row
         self.__class__.col_position = col
@@ -33,15 +36,11 @@ class SelectTarget(Env):
         self.__class__.current_target_index = next_target
 
         state = self.region_values.reshape(1, 27)
-        state = np.asarray(state)
-        append = np.zeros(shape=[1,1])
-        append[0, 0] = self.current_target_index
-        state = np.append(state, append, axis=1)
-
 
         return next_target, state, reward
 
     def get_reward(self, next_target):
+
         hover = False
         if next_target == self.__class__.current_target_index:
             hover = True
@@ -51,10 +50,17 @@ class SelectTarget(Env):
 
         if next_target == self.select_next_target(self.__class__.row_position, self.__class__.col_position):
             print('selected correct target')
+            self.correct_target = True
         else:
             print('selected wrong target. difference in value: ', self.target_value - reward)
+            self.correct_target = False
 
         return reward
+
+    def get_state(self):
+        self.update_regions()
+        state = self.region_values.reshape(1, 27)
+        return state
 
     def update_regions(self):
         self.region_values[:, 0] = self.get_mining()

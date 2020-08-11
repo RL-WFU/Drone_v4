@@ -61,10 +61,14 @@ class Env:
     row_position = start_row
     col_position = start_col
 
-    def reset_env(self):
+    def reset_env(self, visits, maps):
         # Initialize tracking
-        self.__class__.map = np.zeros([self.totalRows, self.totalCols])
-        self.__class__.visited = np.ones([self.totalRows, self.totalCols])
+        #self.__class__.map = np.zeros([self.totalRows, self.totalCols])
+        #self.__class__.visited = np.ones([self.totalRows, self.totalCols])
+        maps.reset_map()
+        self.__class__.map = maps.map
+        visits.reset_visited()
+        self.__class__.visited = visits.visited
 
         # Reset env parameters
         self.start_row = random.randint(12, 47)
@@ -88,6 +92,7 @@ class Env:
         :return: void
         """
         self.__class__.visited[self.__class__.row_position, self.__class__.col_position] = 0
+
 
     def update_visited(self, visited):
         for i in range(self.totalRows):
@@ -123,13 +128,13 @@ class Env:
         # plt.show()
         plt.clf()
 
-    def save_map(self, fname):
+    def save_map(self, fname, map_obj):
         """
         Saves the current region map of the drone to an image file
         :param fname: name of image to save
         :return: void
         """
-        plt.imshow(self.__class__.map[:, :], cmap='gray', interpolation='none')
+        plt.imshow(map_obj.map[:, :], cmap='gray', interpolation='none')
         plt.title("Region Map")
         plt.savefig(fname)
         plt.clf()
@@ -192,23 +197,18 @@ class Env:
         sets the pixel value thresholds for ICRS classification
         :return: void
         """
-        # Simulate classification of mining areas
-        lower = np.array([80, 90, 70])
-        upper = np.array([100, 115, 150])
+        # Simulate classification of areas of interest
+        lower = np.array([0, 0, 70]) #Was 0, 0, 230
+        upper = np.array([160, 160, 400])
         interest_value = 1  # Mark these areas as being of highest interest
-        self.sim.classify('Mining', lower, upper, interest_value)
-
-        # Simulate classification of forest areas
-        lower = np.array([0, 49, 0])
-        upper = np.array([80, 157, 138])
+        self.sim.classify('Area of Interest', lower, upper, interest_value)
+        """
+        # Simulate classification of obstacles
+        lower = np.array([200, 50, 50])
+        upper = np.array([400, 200, 200])
         interest_value = 0  # Mark these areas as being of no interest
-        self.sim.classify('Forest', lower, upper, interest_value)
-
-        # Simulate classification of water
-        lower = np.array([92, 100, 90])
-        upper = np.array([200, 190, 200])
-        interest_value = 0  # Mark these areas as being of no interest
-        self.sim.classify('Water', lower, upper, interest_value)
+        self.sim.classify('Obstacle', lower, upper, interest_value)
+        """
 
         self.sim.setMapSize(self.totalRows, self.totalCols)
         self.sim.createMap()
