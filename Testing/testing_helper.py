@@ -13,6 +13,7 @@ def search_episode(search, searching_agent, row_position, col_position):
     t = 0
     state, local_map = search.reset_search(row_position, col_position)
 
+
     for time in range(config.max_steps_search):
         if time < 5:
             action = np.random.randint(0, 5)
@@ -21,6 +22,7 @@ def search_episode(search, searching_agent, row_position, col_position):
             action = searching_agent.act(states, local_maps)
 
         next_state, next_local_map, reward, done = search.step(action, time)
+
         total_reward += reward
 
         episode.append(Transition(
@@ -47,6 +49,8 @@ def trace_episode(trace, tracing_agent, row_position, col_position, target=None)
     t = 0
     state, local_map = trace.reset_tracing(row_position, col_position)
     coverage = trace.calculate_covered('mining')
+
+    #print("Start Trace: {}".format(np.sum(trace.visited)))
 
     for time in range(config.max_steps_trace):
         if time < 5:
@@ -78,6 +82,8 @@ def trace_episode(trace, tracing_agent, row_position, col_position, target=None)
                 coverage = new_coverage
 
         t = time
+
+    #print("End Trace: {}".format(np.sum(trace.visited)))
 
     return total_reward, t, trace.row_position, trace.col_position
 
@@ -116,22 +122,10 @@ def get_last_t_minus_one_states(t, episode, size):
 
     return states, maps
 
-def get_last_t_states_target(t, episode, size):
-    states = []
-    for i, transition in enumerate(episode[-t:]):
-        states.append(transition.state)
-
-    states = np.asarray(states)
-
-    states = np.reshape(states, [1, t, size])
-    maps = np.zeros([1, t, 25*25])
-
-    return states, maps
-
-def save_plots(num, agent, folder, average_rewards=None, episode_rewards=None, episode_covered=None, mining_coverage=None):
-    agent.save_local_map('Testing_results/ddrqn_local_map' + str(num) + '.png')
-    agent.plot_path('Testing_results/ddrqn_drone_path' + str(num) + '.png')
-    agent.save_map('Testing_results/ddrqn_map' + str(num) + '.png')
+def save_plots(num, agent, folder, average_rewards=None, episode_rewards=None, episode_covered=None, mining_coverage=None, map_obj=None):
+    agent.save_local_map('Testing_results/ddrqn_local_map' + str(num) + '.jpg')
+    agent.plot_path('Testing_results/ddrqn_drone_path' + str(num) + '.jpg')
+    agent.save_map('Testing_results/ddrqn_map' + str(num) + '.jpg', map_obj)
 
     if average_rewards is not None:
         plt.plot(average_rewards)
